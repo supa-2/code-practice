@@ -1,0 +1,5 @@
+[
+  {"name": "lookup 基本功能", "inputs": [{"key": "word", "value": "\"汽车\""}, {"key": "vocab", "value": "[\"猫\",\"狗\",\"汽车\",\"火车\",\"苹果\",\"香蕉\",\"电脑\",\"手机\"]"}], "expected": "E[2] (shape=(10,))"},
+  {"name": "不排除找到自己", "inputs": [{"key": "target_vec", "value": "E[0]"}, {"key": "exclude", "value": "[]"}], "expected": "\"猫\""},
+  {"name": "排除自己后找最近", "inputs": [{"key": "target_vec", "value": "E[0]"}, {"key": "exclude", "value": "[\"猫\"]"}], "expected": "最近邻词"}
+]

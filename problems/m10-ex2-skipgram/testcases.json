@@ -1,0 +1,5 @@
+[
+  {"name": "window=2", "inputs": [{"key": "sentence", "value": "[\"我\",\"每天\",\"乘坐\",\"地铁\",\"上班\"]"}, {"key": "window", "value": "2"}], "expected": "14 对"},
+  {"name": "window=1", "inputs": [{"key": "sentence", "value": "[\"我\",\"每天\",\"乘坐\",\"地铁\",\"上班\"]"}, {"key": "window", "value": "1"}], "expected": "8 对"},
+  {"name": "单词句", "inputs": [{"key": "sentence", "value": "[\"你好\"]"}, {"key": "window", "value": "2"}], "expected": "[]"}
+]

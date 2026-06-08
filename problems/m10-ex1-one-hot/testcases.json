@@ -1,0 +1,6 @@
+[
+  {"name": "基本功能", "inputs": [{"key": "word", "value": "\"地铁\""}, {"key": "vocab", "value": "[\"我\",\"喜欢\",\"乘坐\",\"地铁\",\"公交\",\"上班\"]"}], "expected": "array([0,0,0,1,0,0])"},
+  {"name": "未知词", "inputs": [{"key": "word", "value": "\"火车\""}, {"key": "vocab", "value": "[\"我\",\"喜欢\",\"乘坐\",\"地铁\",\"公交\",\"上班\"]"}], "expected": "array([0,0,0,0,0,0])"},
+  {"name": "自相似度", "inputs": [{"key": "v1", "value": "one_hot(\"地铁\",vocab)"}, {"key": "v2", "value": "one_hot(\"地铁\",vocab)"}], "expected": "1.0"},
+  {"name": "不同词正交", "inputs": [{"key": "v1", "value": "one_hot(\"地铁\",vocab)"}, {"key": "v2", "value": "one_hot(\"公交\",vocab)"}], "expected": "0.0"}
+]
