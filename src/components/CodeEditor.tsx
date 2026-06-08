@@ -230,6 +230,7 @@ export function CodeEditor({ problem, onSelectionChange, onNextProblem }: CodeEd
 
   // Bottom panel resizable height
   const [bottomH, setBottomH] = useState(isMobile ? 180 : 280);
+  const [mobileBottomOpen, setMobileBottomOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const handleBottomDrag = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -321,7 +322,29 @@ export function CodeEditor({ problem, onSelectionChange, onNextProblem }: CodeEd
       {/* Bottom panel resize zone (desktop only) */}
       {!isMobile && <div onMouseDown={handleBottomDrag} className="h-2 cursor-row-resize shrink-0 hover:bg-amber-500/10 transition-colors" />}
 
-      <div style={{ height: bottomH }} className="border-t border-[#333] bg-[#1e1e1e] flex flex-col flex-shrink-0">
+      {/* Mobile: floating Run/Submit buttons */}
+      {isMobile && (
+        <div className="flex items-center gap-2 px-3 py-2 bg-[#282828] border-t border-[#333] shrink-0">
+          <button onClick={handleRun} disabled={isRunning || !code.trim()}
+            className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-md text-xs font-semibold bg-[#262626] text-green-500 disabled:opacity-50">
+            <Play className="w-3.5 h-3.5 fill-current" /> Run
+          </button>
+          <button onClick={handleSubmit} disabled={isTesting || !problem}
+            className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-md text-xs font-semibold bg-green-600/20 text-green-500 disabled:opacity-50">
+            <Cloud className="w-3.5 h-3.5" /> Submit
+          </button>
+          {(caseResults || testResult || result) && (
+            <button onClick={() => setMobileBottomOpen(!mobileBottomOpen)}
+              className="flex items-center gap-1 px-2 py-2 rounded-md text-xs font-semibold bg-[#262626] text-amber-500">
+              {mobileBottomOpen ? "收起" : "结果"}
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* Bottom panel: desktop always visible, mobile only when expanded */}
+      {(!isMobile || mobileBottomOpen) && (
+        <div style={{ height: isMobile ? 200 : bottomH }} className={cn("border-t border-[#333] bg-[#1e1e1e] flex flex-col flex-shrink-0", isMobile && "fixed bottom-14 left-0 right-0 z-40 rounded-t-lg shadow-lg border-x")}>
         {/* Toolbar */}
         <div className="flex px-4 py-2 bg-[#282828] border-b border-[#333] items-center space-x-6">
           <button onClick={() => setActivePaneTab("TESTCASE")} className={cn(
@@ -578,7 +601,8 @@ export function CodeEditor({ problem, onSelectionChange, onNextProblem }: CodeEd
             </div>
           )}
         </div>
-      </div>
+        </div>
+      )}
     </div>
   );
 }
