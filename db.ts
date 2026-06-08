@@ -127,10 +127,18 @@ export function setSetting(key: string, value: string): void {
 }
 
 export function saveSubmission(exercise: string, type: string, code: string, output: string, passed: boolean): number {
+  const trimmedCode = code.slice(0, 2000);
+  const trimmedOutput = (output || "").slice(0, 1000);
+  // Dedup: skip if the most recent submission for this exercise has identical code
+  const last = db.prepare(
+    "SELECT id, code FROM submissions WHERE exercise=? ORDER BY time DESC LIMIT 1"
+  ).get(exercise) as { id: number; code: string } | undefined;
+  if (last && last.code === trimmedCode) return last.id;
+
   const now = new Date().toISOString();
   const info = db.prepare(
     "INSERT INTO submissions (time, exercise, type, code, output, passed) VALUES (?,?,?,?,?,?)"
-  ).run(now, exercise, type, code.slice(0, 2000), (output || "").slice(0, 1000), passed ? 1 : 0);
+  ).run(now, exercise, type, trimmedCode, trimmedOutput, passed ? 1 : 0);
   return info.lastInsertRowid as number;
 }
 
@@ -159,10 +167,17 @@ export function getStats() {
 }
 
 export function saveChatMessage(exercise: string, role: string, content: string): void {
+  const trimmed = content.slice(0, 4000);
+  // Dedup: skip if the last message for this exercise+role has identical content
+  const last = db.prepare(
+    "SELECT content FROM chat_messages WHERE exercise=? AND role=? ORDER BY time DESC LIMIT 1"
+  ).get(exercise || "free", role) as { content: string } | undefined;
+  if (last && last.content === trimmed) return;
+
   const now = new Date().toISOString();
   db.prepare(
     "INSERT INTO chat_messages (time, exercise, role, content) VALUES (?,?,?,?)"
-  ).run(now, exercise || "free", role, content.slice(0, 4000));
+  ).run(now, exercise || "free", role, trimmed);
 }
 
 export function saveChatSession(sessionId: string, firstMessage: string, exercise: string): void {
