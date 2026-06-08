@@ -168,10 +168,10 @@ export function CodeEditor({ problem, onSelectionChange, onNextProblem }: CodeEd
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ problemId: problem.id, code }),
       });
-      const data: TestResult = await response.json();
+      const data: TestResult & { submissionId?: number } = await response.json();
       setTestResult(data);
       // Always trigger AI analysis
-      setTimeout(() => triggerAnalysis(data), 500);
+      setTimeout(() => triggerAnalysis(data, data.submissionId), 500);
     } catch (err: any) {
       setTestResult({ passed: false, output: "", error: err.message, elapsed_ms: 0 });
     } finally {
@@ -183,7 +183,7 @@ export function CodeEditor({ problem, onSelectionChange, onNextProblem }: CodeEd
   handlersRef.current.run = handleRun;
   handlersRef.current.submit = handleSubmit;
 
-  const triggerAnalysis = async (testRes?: TestResult) => {
+  const triggerAnalysis = async (testRes?: TestResult, submissionId?: number) => {
     if (!problem) return;
     setIsAnalyzing(true);
     setAnalysisText("");
@@ -194,6 +194,7 @@ export function CodeEditor({ problem, onSelectionChange, onNextProblem }: CodeEd
         body: JSON.stringify({
           code, output: testRes?.output || result?.stdout || "",
           error: testRes?.error || result?.stderr || "", exercise: problem.id,
+          submissionId,
         }),
       });
       const reader = response.body?.getReader();
