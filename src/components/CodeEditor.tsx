@@ -274,17 +274,22 @@ export function CodeEditor({ problem, onSelectionChange, onNextProblem }: CodeEd
 
       <div className="flex-1 min-h-0">
         {isMobile ? (
-          <div className="relative w-full h-full overflow-hidden" style={{ backgroundColor: "#1e1e1e" }}>
-            {/* Highlighted code layer (visual only) */}
+          <div className="relative w-full h-full" style={{ backgroundColor: "#1e1e1e" }}>
+            {/* Highlighted code layer synced to textarea scroll */}
             <pre
-              className="absolute inset-0 overflow-auto pointer-events-none"
+              ref={(el) => { if (el) (window as any).__mobilePre = el; }}
+              className="absolute inset-0 overflow-hidden pointer-events-none"
               style={{ fontFamily: "'Consolas','Courier New',monospace", fontSize: "14px", lineHeight: "1.6", padding: "16px", margin: 0, tabSize: 4, whiteSpace: "pre-wrap", wordBreak: "break-all", color: "#d4d4d4" }}
               dangerouslySetInnerHTML={{ __html: highlightPython(code) + "\n" }}
             />
-            {/* Transparent textarea on top for input */}
+            {/* Transparent textarea on top — scrollable */}
             <textarea
               value={code}
               onChange={e => { if (!answerVisible) setCode(e.target.value); }}
+              onScroll={e => {
+                const pre = (window as any).__mobilePre as HTMLPreElement | undefined;
+                if (pre) { pre.scrollTop = e.currentTarget.scrollTop; pre.scrollLeft = e.currentTarget.scrollLeft; }
+              }}
               spellCheck={false}
               autoCapitalize="off"
               autoCorrect="off"
@@ -298,6 +303,7 @@ export function CodeEditor({ problem, onSelectionChange, onNextProblem }: CodeEd
                 WebkitTextFillColor: "transparent",
                 whiteSpace: "pre-wrap", wordBreak: "break-all",
                 resize: "none", border: "none", outline: "none",
+                overflow: "auto", WebkitOverflowScrolling: "touch",
               }}
               className="w-full h-full"
               placeholder="在这里写代码..."
