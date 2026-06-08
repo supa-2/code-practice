@@ -5,9 +5,23 @@ import { AIPane } from "./components/AIPane";
 import { ProblemSelector } from "./components/ProblemSelector";
 import { cn } from "./utils";
 import type { ProblemMeta, ProblemFull, AppSettings } from "./types";
-import { Sparkles, Play, Pause, Code2, Settings, PanelLeftClose, PanelLeftOpen } from "lucide-react";
+import { Sparkles, Play, Pause, Code2, Settings, PanelLeftClose, PanelLeftOpen, BookOpen, Terminal, MessageSquare } from "lucide-react";
+
+function useIsMobile() {
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  useEffect(() => {
+    const onResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
+  return isMobile;
+}
+
+type MobileTab = "problem" | "editor" | "ai";
 
 export default function App() {
+  const isMobile = useIsMobile();
+  const [mobileTab, setMobileTab] = useState<MobileTab>("editor");
   const [problems, setProblems] = useState<ProblemMeta[]>([]);
   const [activeProblemId, setActiveProblemId] = useState<string>("");
   const [activeProblem, setActiveProblem] = useState<ProblemFull | null>(null);
@@ -92,7 +106,6 @@ export default function App() {
       .then(() => { if (settings) setSettings({ ...settings, has_api_key: !!v }); });
   }, [settings]);
 
-  // Invisible edge drag for panel resize
   const startDrag = (type: "left" | "ai", e: React.MouseEvent) => {
     e.preventDefault();
     setIsResizing(true);
@@ -119,6 +132,116 @@ export default function App() {
     document.body.style.cursor = "col-resize";
     document.body.style.userSelect = "none";
   };
+
+  const handleNextProblem = () => {
+    const idx = problems.findIndex(p => p.id === activeProblemId);
+    const next = problems.slice(idx + 1).find(p => p.status !== "passed")
+      || problems.find(p => p.status !== "passed");
+    if (next && next.id !== activeProblemId) setActiveProblemId(next.id);
+  };
+
+  // ── Shared components ──
+
+  const settingsPanel = showSettings && (
+    <div className={cn(
+      "absolute z-50 bg-[#1a1a1a] border border-[#363636] rounded-lg shadow-2xl p-4",
+      isMobile ? "inset-2 rounded-xl" : "top-14 left-1/2 -translate-x-1/2 w-[420px]"
+    )}>
+      <div className="flex items-center justify-between mb-3">
+        <h3 className="text-sm font-semibold text-[#ccc]">设置</h3>
+        {isMobile && <button onClick={() => setShowSettings(false)} className="text-[#888] text-xs">关闭</button>}
+      </div>
+      <div className="space-y-3">
+        <div>
+          <label className="text-xs text-[#888] mb-1 block">Python 解释器</label>
+          <select value={pythonInput} onChange={e => savePythonPath(e.target.value)}
+            className="w-full bg-[#222] border border-[#363636] rounded-md px-3 py-2 text-sm text-[#e0e0e0] focus:outline-none focus:border-amber-500/50">
+            <option value="">自动检测</option>
+            {settings && (settings as any).pythons?.map((p: any) => (
+              <option key={p.path} value={p.path}>{p.version} — {p.path}</option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <label className="text-xs text-[#888] mb-1 block">Anthropic API Key</label>
+          <input type="password" value={apiKeyInput}
+            onChange={e => setApiKeyInput(e.target.value)}
+            onBlur={() => saveApiKey(apiKeyInput)}
+            onKeyDown={e => { if (e.key === "Enter") saveApiKey(apiKeyInput); }}
+            placeholder="sk-ant-..."
+            className="w-full bg-[#222] border border-[#363636] rounded-md px-3 py-2 text-sm text-[#e0e0e0] placeholder-[#555] focus:outline-none focus:border-amber-500/50" />
+          <p className="text-[10px] text-[#555] mt-1">用于 AI 对话和代码分析</p>
+        </div>
+      </div>
+    </div>
+  );
+
+  // ── Mobile Layout ──
+
+  if (isMobile) {
+    return (
+      <div className="flex flex-col h-[100dvh] w-full bg-[#0a0a0a] text-[#e0e0e0] font-sans overflow-hidden">
+        {/* Mobile nav — compact */}
+        <nav className="flex items-center justify-between px-3 h-12 bg-[#161616] border-b border-[#262626] shrink-0">
+          <div className="flex items-center space-x-2">
+            <div className="w-6 h-6 bg-gradient-to-br from-amber-400 to-orange-500 rounded flex items-center justify-center text-black">
+              <Code2 className="w-3.5 h-3.5 ml-0.5" />
+            </div>
+            <ProblemSelector problems={problems} activeProblemId={activeProblemId} onSelectProblem={setActiveProblemId} />
+          </div>
+          <div className="flex items-center space-x-1.5">
+            <span className="text-[10px] font-mono text-[#888]">{formatTime(timeElapsed)}</span>
+            <button onClick={() => setShowSettings(!showSettings)}
+              className={cn("p-1.5 rounded", showSettings ? "text-amber-500" : "text-[#888]")}>
+              <Settings className="w-4 h-4" />
+            </button>
+          </div>
+        </nav>
+
+        {settingsPanel}
+
+        {/* Mobile content — one panel at a time */}
+        <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+          {mobileTab === "problem" && (
+            <div className="flex-1 min-h-0 bg-[#0f0f0f] overflow-auto">
+              <LeftPane problem={activeProblem} />
+            </div>
+          )}
+          {mobileTab === "editor" && (
+            <div className="flex-1 min-h-0">
+              <CodeEditor problem={activeProblem} onSelectionChange={setSelectedCode} onNextProblem={handleNextProblem} />
+            </div>
+          )}
+          {mobileTab === "ai" && (
+            <div className="flex-1 min-h-0 bg-[#181818]">
+              <AIPane isOpen={true} onClose={() => setMobileTab("editor")}
+                selectedCode={selectedCode} timeElapsed={timeElapsed} problemId={activeProblemId} />
+            </div>
+          )}
+        </div>
+
+        {/* Mobile bottom tab bar */}
+        <div className="flex items-center justify-around h-14 bg-[#161616] border-t border-[#262626] shrink-0 safe-area-pb">
+          {([
+            { key: "problem" as const, label: "题目", icon: BookOpen },
+            { key: "editor" as const, label: "编辑", icon: Terminal },
+            { key: "ai" as const, label: "AI", icon: MessageSquare },
+          ] as const).map(tab => (
+            <button key={tab.key} onClick={() => setMobileTab(tab.key)}
+              className={cn(
+                "flex flex-col items-center justify-center gap-0.5 flex-1 h-full transition-colors",
+                mobileTab === tab.key ? "text-amber-500" : "text-[#666] active:text-[#aaa]"
+              )}>
+              <tab.icon className="w-5 h-5" />
+              <span className="text-[10px] font-medium">{tab.label}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  // ── Desktop Layout ──
 
   return (
     <div className="flex flex-col h-screen w-full bg-[#0a0a0a] text-[#e0e0e0] font-sans overflow-hidden">
@@ -169,38 +292,10 @@ export default function App() {
         </div>
       </nav>
 
-      {/* Settings */}
-      {showSettings && (
-        <div className="absolute top-14 left-1/2 -translate-x-1/2 z-50 bg-[#1a1a1a] border border-[#363636] rounded-lg shadow-2xl p-4 w-[420px]">
-          <h3 className="text-sm font-semibold mb-3 text-[#ccc]">设置</h3>
-          <div className="space-y-3">
-            <div>
-              <label className="text-xs text-[#888] mb-1 block">Python 解释器</label>
-              <select value={pythonInput} onChange={e => savePythonPath(e.target.value)}
-                className="w-full bg-[#222] border border-[#363636] rounded-md px-3 py-2 text-sm text-[#e0e0e0] focus:outline-none focus:border-amber-500/50">
-                <option value="">自动检测</option>
-                {settings && (settings as any).pythons?.map((p: any) => (
-                  <option key={p.path} value={p.path}>{p.version} — {p.path}</option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="text-xs text-[#888] mb-1 block">Anthropic API Key</label>
-              <input type="password" value={apiKeyInput}
-                onChange={e => setApiKeyInput(e.target.value)}
-                onBlur={() => saveApiKey(apiKeyInput)}
-                onKeyDown={e => { if (e.key === "Enter") saveApiKey(apiKeyInput); }}
-                placeholder="sk-ant-..."
-                className="w-full bg-[#222] border border-[#363636] rounded-md px-3 py-2 text-sm text-[#e0e0e0] placeholder-[#555] focus:outline-none focus:border-amber-500/50" />
-              <p className="text-[10px] text-[#555] mt-1">用于 AI 对话和代码分析，密钥保存在本地数据库</p>
-            </div>
-          </div>
-        </div>
-      )}
+      {settingsPanel}
 
       {/* Main layout */}
       <div className="flex flex-1 overflow-hidden">
-        {/* Left panel — smooth collapse */}
         <div
           className={cn("overflow-hidden shrink-0", !isResizing && "transition-[width] duration-300 ease-in-out")}
           style={{ width: isLeftOpen ? leftWidth : 0 }}
@@ -210,38 +305,24 @@ export default function App() {
           </div>
         </div>
 
-        {/* Left edge resize zone — transparent 8px strip */}
         {isLeftOpen && (
-          <div
-            onMouseDown={(e) => startDrag("left", e)}
-            className="w-2 cursor-col-resize shrink-0 hover:bg-amber-500/10 transition-colors"
-          />
+          <div onMouseDown={(e) => startDrag("left", e)}
+            className="w-2 cursor-col-resize shrink-0 hover:bg-amber-500/10 transition-colors" />
         )}
 
-        {/* Center: code editor */}
         <div className="flex-1 flex flex-col bg-[#0d0d0d] min-w-[300px]">
-          <CodeEditor problem={activeProblem} onSelectionChange={setSelectedCode} />
+          <CodeEditor problem={activeProblem} onSelectionChange={setSelectedCode} onNextProblem={handleNextProblem} />
         </div>
 
-        {/* Right: AI panel */}
         {isAIOpen && (
           <>
-            <div
-              onMouseDown={(e) => startDrag("ai", e)}
-              className="w-2 cursor-col-resize shrink-0 hover:bg-amber-500/10 transition-colors"
-            />
-            <div
-              className={cn("overflow-hidden shrink-0", !isResizing && "transition-[width] duration-300 ease-in-out")}
-              style={{ width: aiWidth }}
-            >
+            <div onMouseDown={(e) => startDrag("ai", e)}
+              className="w-2 cursor-col-resize shrink-0 hover:bg-amber-500/10 transition-colors" />
+            <div className={cn("overflow-hidden shrink-0", !isResizing && "transition-[width] duration-300 ease-in-out")}
+              style={{ width: aiWidth }}>
               <div className="h-full border-l border-[#2b2b2b] bg-[#181818]" style={{ minWidth: 280 }}>
-                <AIPane
-                  isOpen={isAIOpen}
-                  onClose={() => setIsAIOpen(false)}
-                  selectedCode={selectedCode}
-                  timeElapsed={timeElapsed}
-                  problemId={activeProblemId}
-                />
+                <AIPane isOpen={isAIOpen} onClose={() => setIsAIOpen(false)}
+                  selectedCode={selectedCode} timeElapsed={timeElapsed} problemId={activeProblemId} />
               </div>
             </div>
           </>

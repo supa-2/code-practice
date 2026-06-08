@@ -46,7 +46,7 @@ export function runCode(code: string, cwd?: string): Promise<RunResult> {
   return new Promise((resolve) => {
     const proc = spawn(python, ["-c", code], {
       cwd: cwd || process.cwd(),
-      env: { ...process.env },
+      env: { ...process.env, PYTHONUTF8: "1", PYTHONIOENCODING: "utf-8" },
       timeout: TIMEOUT_MS,
     });
 

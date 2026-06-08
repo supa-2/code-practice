@@ -4,6 +4,8 @@ export interface ProblemMeta {
   difficulty: "Easy" | "Medium" | "Hard";
   category: string;
   module: string;
+  status: "passed" | "tried" | "new";
+  last_time?: string;
 }
 
 export interface TestCase {

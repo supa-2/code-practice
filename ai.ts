@@ -112,7 +112,7 @@ export async function streamAnalysis(
   const client = getClient();
   if (!client) { onError("请先在设置中填入 Anthropic API Key"); return; }
 
-  const prompt = `分析这段代码，找出问题并给出建议。中文，markdown。
+  const prompt = `你是一位算法题评判助手。请分析以下代码的提交结果。
 
 **代码：**
 \`\`\`python
@@ -122,7 +122,18 @@ ${code}
 **运行输出：** ${output || "(无输出)"}
 **错误信息：** ${error || "(无错误)"}
 
-请分析：1. 代码问题 2. 知识点解释 3. 改进建议。简洁回答。`;
+请按以下格式回答（中文，markdown）：
+
+## 判定结果
+先给出明确判定：✅ **通过** 或 ❌ **未通过**，一句话说明原因。
+
+## 问题分析
+如果未通过，指出具体哪里有问题（逻辑错误/语法错误/边界情况/未实现等）。
+
+## 改进建议
+给出修复方向或代码片段。如果代码已经正确，可以肯定实现亮点。
+
+简洁回答，不要超过 200 字。`;
 
   try {
     const stream = client.messages.stream({

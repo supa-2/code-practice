@@ -107,7 +107,7 @@ export function AIPane({ isOpen, onClose, selectedCode, timeElapsed, problemId }
   };
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full min-h-0">
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-[#2b2b2b] bg-[#1a1a1a]">
         <h2 className="text-[#cccccc] font-medium text-sm flex items-center gap-2">

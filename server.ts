@@ -61,15 +61,47 @@ async function startServer() {
     res.json({ status: "ok" });
   });
 
-  // ── Run Code ──
+  // ── Run (run tests.py, show pass/fail per visible case) ──
   app.post("/api/run", async (req, res) => {
-    const { code } = req.body;
+    const { code, problemId } = req.body;
     if (!code) return res.status(400).json({ error: "No code provided" });
+
+    if (problemId) {
+      const problem = getProblem(problemId);
+      if (!problem) { res.json(await runCode(code)); return; }
+
+      // Run the full tests.py
+      const result = await runTests(code, problem.tests);
+      // Map to per-case display using testcases metadata
+      const tcs: any[] = problem.testcases || [];
+
+      // Extract the relevant error snippet — just the error type and message
+      const fullError = result.error || result.output || "";
+      const errorLines = fullError.split("\n").filter(l => l.trim());
+      // Show only last 1-2 lines (the actual error, not the full traceback)
+      const errorSnippet = errorLines.length > 2
+        ? errorLines.slice(-2).join("\n")
+        : errorLines.join("\n");
+
+      const cases = tcs.length > 0
+        ? tcs.map((tc: any, i: number) => ({
+            name: tc.name,
+            output: result.passed ? (tc.expected || "✓") : (i === 0 ? errorSnippet : "前序测试未通过"),
+            error: result.passed ? "" : (i === 0 ? result.error : ""),
+            passed: result.passed,
+            returncode: result.passed ? 0 : 1,
+          }))
+        : [{ name: "Test Suite", output: result.output || errorSnippet, error: result.error, passed: result.passed, returncode: result.passed ? 0 : 1 }];
+
+      res.json({ cases, passed: result.passed, elapsed_ms: result.elapsed_ms, output: result.output, error: result.error, returncode: result.passed ? 0 : 1, stdout: "", stderr: "" });
+      return;
+    }
+
     const result = await runCode(code);
     res.json(result);
   });
 
-  // ── Run Tests ──
+  // ── Submit (full test suite) ──
   app.post("/api/test", async (req, res) => {
     const { problemId, code } = req.body;
     if (!problemId || !code) return res.status(400).json({ error: "Missing problemId or code" });
@@ -77,8 +109,8 @@ async function startServer() {
     const problem = getProblem(problemId);
     if (!problem) return res.status(404).json({ error: "Problem not found" });
 
+    // Run the full tests.py
     const result = await runTests(code, problem.tests);
-    // Save submission
     const subId = saveSubmission(problemId, "test", code, result.output || result.error, result.passed);
     res.json({ ...result, submissionId: subId });
   });

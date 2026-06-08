@@ -193,9 +193,22 @@ export function getSubmissions(exercise?: string, limit = 50) {
 // ── Problem CRUD ──
 
 export function getProblemList() {
-  return db.prepare(
-    "SELECT id, title, difficulty, category, module, sort_order FROM problems ORDER BY sort_order"
-  ).all();
+  return db.prepare(`
+    SELECT p.id, p.title, p.difficulty, p.category, p.module, p.sort_order,
+      COALESCE(s.passed, -1) as passed_status,
+      s.last_time
+    FROM problems p
+    LEFT JOIN (
+      SELECT exercise, passed, time as last_time,
+        ROW_NUMBER() OVER (PARTITION BY exercise ORDER BY time DESC) as rn
+      FROM submissions WHERE type='test'
+    ) s ON s.exercise = p.id AND s.rn = 1
+    ORDER BY p.sort_order
+  `).all().map((row: any) => ({
+    ...row,
+    status: row.passed_status === -1 ? "new" : row.passed_status === 1 ? "passed" : "tried",
+    passed_status: undefined,
+  }));
 }
 
 export function getProblem(id: string) {
