@@ -130,12 +130,25 @@ async function startServer() {
     res.setHeader("Cache-Control", "no-cache");
     res.setHeader("Connection", "keep-alive");
 
+    // Load problem info for AI context
+    let problemInfo = "";
+    if (exercise && exercise !== "free") {
+      const p = getProblem(exercise);
+      if (p) {
+        problemInfo = `题目：${p.title}\n${p.description?.slice(0, 1000) || ""}`;
+        if (p.testcases?.length) {
+          problemInfo += `\n\n测试用例：\n${p.testcases.slice(0, 3).map((tc: any, i: number) => `Case ${i+1}: ${tc.name} → ${tc.expected || "check output"}`).join("\n")}`;
+        }
+      }
+    }
+
     let fullText = "";
 
     await streamChat(
       messages || [],
       code || "",
       exercise || "free",
+      problemInfo,
       (text) => {
         fullText += text;
         res.write(`data: ${JSON.stringify({ text })}\n\n`);

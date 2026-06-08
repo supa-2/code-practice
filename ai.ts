@@ -2,9 +2,11 @@ import Anthropic from "@anthropic-ai/sdk";
 import { getSetting, saveChatMessage, db } from "./db.js";
 
 const SYSTEM_PROMPT =
-  "你是一位算法刷题助手。回答简洁实用，中文为主技术术语英文。" +
-  "可以分析代码、找 bug、讲解思路。用 markdown 格式回答。" +
-  "学员发代码时先仔细看再回答，思路有误时用提示引导不要直接给答案。";
+  "你是一位算法刷题助手，同时是学员的编程教练。回答简洁实用，中文为主技术术语英文。" +
+  "你始终能看到学员当前的完整代码（[编辑器代码]）和题目信息。" +
+  "当学员发报错信息时：先定位出错的行，用「第X行的xxx有问题」格式指出，再解释原因和修复方法。" +
+  "当学员问思路时：用提示引导，不要直接给完整答案。" +
+  "用 markdown 格式回答，代码片段用 ```python 包裹。";
 
 // ── Chat history — persisted in DB ──
 
@@ -43,6 +45,7 @@ export async function streamChat(
   messages: { role: string; content: string }[],
   code: string,
   exercise: string,
+  problemInfo: string,
   onText: (text: string) => void,
   onDone: (sessionId: string) => void,
   onError: (error: string) => void,
@@ -54,6 +57,7 @@ export async function streamChat(
   if (!userMsg) { onError("消息为空"); return; }
 
   const parts: string[] = [];
+  if (problemInfo) parts.push(`[题目信息]\n${problemInfo}`);
   if (code?.trim()) parts.push(`[编辑器代码]\n\`\`\`python\n${code.slice(0, 3000)}\n\`\`\``);
   parts.push(userMsg);
   const fullMsg = parts.join("\n\n");

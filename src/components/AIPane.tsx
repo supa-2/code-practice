@@ -186,7 +186,7 @@ export function AIPane({ isOpen, onClose, selectedCode, timeElapsed, problemId }
         {selectedCode && (
           <div className="mb-3 px-3 py-2 bg-[#222] border border-[#333] rounded-lg text-xs font-mono text-[#888] shadow-sm max-h-24 overflow-hidden relative">
             <div className="flex items-center gap-1.5 mb-1 text-[#aaa] font-sans font-medium">
-              <Code2 className="w-3.5 h-3.5 text-[#bf9c6e]" /> 已选择代码上下文
+              <Code2 className="w-3.5 h-3.5 text-[#bf9c6e]" /> 当前代码
             </div>
             <div className="text-[#666] line-clamp-3 whitespace-pre-wrap">{selectedCode}</div>
             <div className="absolute bottom-0 left-0 right-0 h-6 bg-gradient-to-t from-[#222] to-transparent pointer-events-none" />

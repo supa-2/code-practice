@@ -74,6 +74,9 @@ export function CodeEditor({ problem, onSelectionChange, onNextProblem }: CodeEd
 
   useEffect(() => { setActiveTCIdx(0); }, [problem?.id]);
 
+  // Always propagate full code to parent (for AI context)
+  useEffect(() => { onSelectionChange?.(code); }, [code]);
+
   // Auto-save to localStorage
   useEffect(() => {
     if (!problem || answerVisible) return;
