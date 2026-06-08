@@ -35,6 +35,7 @@ export function CodeEditor({ problem, onSelectionChange, onNextProblem }: CodeEd
   const [activeTCIdx, setActiveTCIdx] = useState(0);
   const [showTests, setShowTests] = useState(false);
   const editorRef = useRef<any>(null);
+  const mobilePreRef = useRef<HTMLPreElement>(null);
   // Ref to always-forward latest handlers (avoids stale closure in Monaco keybindings)
   const handlersRef = useRef<{ run: () => void; submit: () => void }>({ run: () => {}, submit: () => {} });
 
@@ -274,12 +275,12 @@ export function CodeEditor({ problem, onSelectionChange, onNextProblem }: CodeEd
 
       <div className="flex-1 min-h-0">
         {isMobile ? (
-          <div className="relative w-full h-full" style={{ backgroundColor: "#1e1e1e" }}>
-            {/* Highlighted code layer synced to textarea scroll */}
+          <div className="relative w-full h-full overflow-hidden" style={{ backgroundColor: "#1e1e1e" }}>
+            {/* Highlighted code layer — moved via transform on scroll */}
             <pre
-              ref={(el) => { if (el) (window as any).__mobilePre = el; }}
-              className="absolute inset-0 overflow-hidden pointer-events-none"
-              style={{ fontFamily: "'Consolas','Courier New',monospace", fontSize: "14px", lineHeight: "1.6", padding: "16px", margin: 0, tabSize: 4, whiteSpace: "pre-wrap", wordBreak: "break-all", color: "#d4d4d4" }}
+              ref={mobilePreRef}
+              className="absolute top-0 left-0 right-0 pointer-events-none"
+              style={{ fontFamily: "'Consolas','Courier New',monospace", fontSize: "14px", lineHeight: "1.6", padding: "16px", margin: 0, tabSize: 4, whiteSpace: "pre-wrap", wordBreak: "break-all", color: "#d4d4d4", overflow: "hidden" }}
               dangerouslySetInnerHTML={{ __html: highlightPython(code) + "\n" }}
             />
             {/* Transparent textarea on top — scrollable */}
@@ -287,8 +288,10 @@ export function CodeEditor({ problem, onSelectionChange, onNextProblem }: CodeEd
               value={code}
               onChange={e => { if (!answerVisible) setCode(e.target.value); }}
               onScroll={e => {
-                const pre = (window as any).__mobilePre as HTMLPreElement | undefined;
-                if (pre) { pre.scrollTop = e.currentTarget.scrollTop; pre.scrollLeft = e.currentTarget.scrollLeft; }
+                if (mobilePreRef.current) {
+                  const t = e.currentTarget;
+                  mobilePreRef.current.style.transform = `translate(${-t.scrollLeft}px, ${-t.scrollTop}px)`;
+                }
               }}
               spellCheck={false}
               autoCapitalize="off"
